@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konverter Waktu & Frame</title>
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #18181b;
+    --surface-2: #1f1f23;
+    --border: #2a2a2f;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #60a5fa;
+    --accent-soft: #1e293b;
+    --error: #f87171;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 440px;
+  }
+
+  h1 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+
+  .card:last-child {
+    margin-bottom: 0;
+  }
+
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* Segmented control */
+  .segmented {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px;
+    margin-bottom: 20px;
+  }
+
+  .segmented button {
+    flex: 1;
+    padding: 7px 12px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    font-family: inherit;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .segmented button:hover:not(.active) {
+    color: var(--text);
+  }
+
+  .segmented button.active {
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Input */
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field:last-child {
+    margin-bottom: 0;
+  }
+
+  .field label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+  }
+
+  .field input::placeholder {
+    color: #52525b;
+  }
+
+  .field input::-webkit-outer-spin-button,
+  .field input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .field input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .field .hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .field .error {
+    font-size: 0.75rem;
+    color: var(--error);
+    margin-top: 6px;
+    display: none;
+  }
+
+  /* Result */
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    font-size: 0.875rem;
+    gap: 16px;
+  }
+
+  .result-row + .result-row {
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+
+  .result-row .key {
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .result-row .value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .result-row.primary .value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<main class="app">
+  <h1>Konverter Waktu & Frame</h1>
+  <p class="subtitle">Detik ↔ menit, plus jumlah frame berdasarkan FPS</p>
+
+  <!-- KARTU 1: KONVERSI WAKTU -->
+  <div class="card">
+    <div class="card-title">Waktu</div>
+
+    <div class="segmented" role="tablist">
+      <button type="button" class="active" data-mode="toMinutes">Detik → Menit</button>
+      <button type="button" data-mode="toSeconds">Menit → Detik</button>
+    </div>
+
+    <div class="field">
+      <label for="inputValue" id="inputLabel">Jumlah detik</label>
+      <input type="number" id="inputValue" placeholder="0" min="0" step="any" inputmode="decimal">
+      <p class="hint" id="inputHint">Contoh: 105</p>
+      <p class="error" id="errorMsg">Masukkan angka ≥ 0</p>
+    </div>
+
+    <div class="result">
+      <div class="result-row primary">
+        <span class="key" id="resultKey">Hasil (menit)</span>
+        <span class="value" id="resultValue">—</span>
+      </div>
+      <div class="result-row">
+        <span class="key">Format menit:detik</span>
+        <span class="value" id="resultDetail">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KARTU 2: KONVERSI FRAME -->
+  <div class="card">
+    <div class="card-title">Frame</div>
+
+    <div class="field">
+      <label for="fpsSelect">Frame rate</label>
+      <select id="fpsSelect">
+        <option value="23.976">23.976 fps</option>
+        <option value="24">24 fps</option>
+        <option value="25">25 fps</option>
+        <option value="29.97">29.97 fps</option>
+        <option value="30" selected>30 fps</option>
+        <option value="50">50 fps</option>
+        <option value="59.94">59.94 fps</option>
+        <option value="60">60 fps</option>
+      </select>
+    </div>
+
+    <div class="result">
+      <div class="result-row primary">
+        <span class="key">Total frame</span>
+        <span class="value" id="frameTotal">—</span>
+      </div>
+      <div class="result-row">
+        <span class="key">Timecode</span>
+        <span class="value" id="frameTimecode">—</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const inputValue   = document.getElementById('inputValue');
+  const inputLabel   = document.getElementById('inputLabel');
+  const inputHint    = document.getElementById('inputHint');
+  const resultKey    = document.getElementById('resultKey');
+  const resultValue  = document.getElementById('resultValue');
+  const resultDetail = document.getElementById('resultDetail');
+  const errorMsg     = document.getElementById('errorMsg');
+  const tabs         = document.querySelectorAll('.segmented button');
+
+  const fpsSelect    = document.getElementById('fpsSelect');
+  const frameTotal   = document.getElementById('frameTotal');
+  const frameTimecode = document.getElementById('frameTimecode');
+
+  let mode = 'toMinutes';
+
+  // Format desimal dengan TITIK
+  function fmt(num, maxDecimals = 4) {
+    const r = Math.round(num * 10 ** maxDecimals) / 10 ** maxDecimals;
+    return r.toLocaleString('en-US', {
+      useGrouping: false,
+      maximumFractionDigits: maxDecimals
+    });
+  }
+
+  function fmtInt(num) {
+    return num.toLocaleString('en-US');
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  // Ambil total detik dari input, tergantung mode
+  function getTotalDetik() {
+    const raw = inputValue.value.trim();
+    if (raw === '') return null;
+
+    const val = parseFloat(raw);
+    if (isNaN(val) || val < 0) return null;
+
+    return mode === 'toMinutes' ? val : val * 60;
+  }
+
+  function hitungWaktu() {
+    errorMsg.style.display = 'none';
+    const raw = inputValue.value.trim();
+
+    if (raw === '') {
+      resultValue.textContent  = '—';
+      resultDetail.textContent = '—';
+      return;
+    }
+
+    const val = parseFloat(raw);
+    if (isNaN(val) || val < 0) {
+      errorMsg.style.display = 'block';
+      resultValue.textContent  = '—';
+      resultDetail.textContent = '—';
+      return;
+    }
+
+    if (mode === 'toMinutes') {
+      const totalDetik   = val;
+      const menit        = Math.floor(totalDetik / 60);
+      const detik        = totalDetik - menit * 60;
+      const desimalMenit = totalDetik / 60;
+
+      resultValue.textContent  = `${fmt(desimalMenit)} menit`;
+      resultDetail.textContent = `${menit}:${pad2(Math.round(detik))}`;
+    } else {
+      const menit      = val;
+      const totalDetik = menit * 60;
+      const menitBulat = Math.floor(menit);
+      const sisaDetik  = (menit - menitBulat) * 60;
+
+      resultValue.textContent  = `${fmt(totalDetik)} detik`;
+      resultDetail.textContent = `${menitBulat}:${pad2(Math.round(sisaDetik))}`;
+    }
+  }
+
+  function hitungFrame() {
+    const fps = parseFloat(fpsSelect.value);
+    const totalDetik = getTotalDetik();
+
+    if (totalDetik === null) {
+      frameTotal.textContent    = '—';
+      frameTimecode.textContent = '—';
+      return;
+    }
+
+    const totalFrame = Math.round(totalDetik * fps);
+    frameTotal.textContent = `${fmtInt(totalFrame)} frame`;
+
+    // Timecode HH:MM:SS:FF (pakai fps yang dibulatkan untuk FF)
+    const fpsRound  = Math.round(fps);
+    const totalSec  = Math.floor(totalDetik);
+    const jam       = Math.floor(totalSec / 3600);
+    const menit     = Math.floor((totalSec % 3600) / 60);
+    const detik     = totalSec % 60;
+    const sisaDetik = totalDetik - totalSec;
+    const frame     = Math.min(Math.round(sisaDetik * fps), fpsRound - 1);
+
+    frameTimecode.textContent =
+      `${pad2(jam)}:${pad2(menit)}:${pad2(detik)}:${pad2(frame)}`;
+  }
+
+  function hitungSemua() {
+    hitungWaktu();
+    hitungFrame();
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      mode = tab.dataset.mode;
+
+      if (mode === 'toMinutes') {
+        inputLabel.textContent = 'Jumlah detik';
+        inputHint.textContent  = 'Contoh: 105';
+        resultKey.textContent  = 'Hasil (menit)';
+      } else {
+        inputLabel.textContent = 'Jumlah menit';
+        inputHint.textContent  = 'Contoh: 1.75';
+        resultKey.textContent  = 'Hasil (detik)';
+      }
+
+      hitungSemua();
+    });
+  });
+
+  inputValue.addEventListener('input', hitungSemua);
+  fpsSelect.addEventListener('change', hitungFrame);
+
+  hitungSemua();
+</script>
+
+</body>
+</html>
